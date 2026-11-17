@@ -92,15 +92,7 @@ class QtLoggingPlugin:
                     for rec in item.qt_log_capture.records:
                         suffix = " (IGNORED)" if rec.ignored else ""
 
-                        if (
-                            rec.context is not None
-                            and (
-                                rec.context.file is not None
-                                or rec.context.function is not None
-                                or rec.context.line != 0
-                            )
-                            and context_format is not None
-                        ):
+                        if context_format is not None and _has_source_context(rec):
                             context_line = context_format.format(rec=rec)
                             lines.append(context_line)
                         else:
@@ -114,6 +106,17 @@ class QtLoggingPlugin:
             item.qt_log_capture._stop()
             del item.qt_log_capture
         return report
+
+
+def _has_source_context(rec: Record) -> bool:
+    """
+    Return True if the record carries any information about where in the
+    source code the Qt message was emitted (file, function or line).
+    """
+    context = rec.context
+    if context is None:
+        return False
+    return context.file is not None or context.function is not None or context.line != 0
 
 
 class _QtMessageCapture:
