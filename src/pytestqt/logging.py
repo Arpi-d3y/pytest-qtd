@@ -66,9 +66,10 @@ class QtLoggingPlugin:
                         and rec.context.category == "qt.modeltest"
                         and rec.matches_level("WARNING")
                     )
-                    if (
+                    matches_fail_level = (
                         rec.matches_level(log_fail_level) and not rec.ignored
-                    ) or is_modeltest_error:
+                    )
+                    if matches_fail_level or is_modeltest_error:
                         report.outcome = "failed"
                         if report.longrepr is None:
                             report.longrepr = _QtLogLevelErrorRepr(
