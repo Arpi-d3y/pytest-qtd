@@ -144,6 +144,17 @@ Tests are run using `tox`_::
 
     $ tox -e py-pyside6,py-pyqt5
 
+To build and test without ``tox``, install the package and one Qt binding into a
+virtual environment and run ``pytest`` from the repository root::
+
+    $ python -m venv .venv
+    $ source .venv/bin/activate        # Windows: .venv\Scripts\activate
+    $ pip install --editable . PySide6  # or PyQt6, PyQt5, PySide2
+    $ pytest
+
+On Linux without a display, install ``pytest-xvfb`` (and the ``xvfb`` system
+package) or set ``QT_QPA_PLATFORM=offscreen``.
+
 ``pytest-qt`` is formatted and linted using `ruff <https://github.com/astral-sh/ruff>`_ and uses
 `pre-commit <https://github.com/pre-commit/pre-commit>`_ for linting checks before commits. You
 can install ``pre-commit`` locally with::
