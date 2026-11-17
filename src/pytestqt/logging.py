@@ -50,62 +50,79 @@ class QtLoggingPlugin:
             return report
 
         if call.when == "call":
-            fail_level_marker = get_marker(item, "qt_log_level_fail")
-            if fail_level_marker:
-                log_fail_level = fail_level_marker.args[0]
-            else:
-                log_fail_level = self.config.getini("qt_log_level_fail")
-            assert log_fail_level in QtLoggingPlugin.LOG_FAIL_OPTIONS
-
-            # make test fail if any records were captured which match
-            # log_fail_level
+            log_fail_level = self._get_log_fail_level(item)
             if report.outcome != "failed":
-                for rec in item.qt_log_capture.records:
-                    is_modeltest_error = (
-                        rec.context is not None
-                        and rec.context.category == "qt.modeltest"
-                        and rec.matches_level("WARNING")
-                    )
-                    matches_fail_level = (
-                        rec.matches_level(log_fail_level) and not rec.ignored
-                    )
-                    if matches_fail_level or is_modeltest_error:
-                        report.outcome = "failed"
-                        if report.longrepr is None:
-                            report.longrepr = _QtLogLevelErrorRepr(
-                                item, log_fail_level, is_modeltest_error
-                            )
-                        break
-
-            # if test has failed, add recorded messages to its terminal
-            # representation
+                self._fail_report_on_matching_records(item, report, log_fail_level)
             if not report.passed:
-                long_repr = getattr(report, "longrepr", None)
-                if hasattr(long_repr, "addsection"):  # pragma: no cover
-                    log_format = self.config.getoption("qt_log_format")
-                    context_format = None
-                    if log_format is None:
-                        context_format = "{rec.context.file}:{rec.context.function}:{rec.context.line}:\n"
-                        log_format = "    {rec.type_name}: {rec.message}"
-
-                    lines = []
-                    for rec in item.qt_log_capture.records:
-                        suffix = " (IGNORED)" if rec.ignored else ""
-
-                        if context_format is not None and _has_source_context(rec):
-                            context_line = context_format.format(rec=rec)
-                            lines.append(context_line)
-                        else:
-                            log_format = log_format.lstrip()
-
-                        line = log_format.format(rec=rec) + suffix
-                        lines.append(line)
-                    if lines:
-                        long_repr.addsection("Captured Qt messages", "\n".join(lines))
+                self._add_captured_messages_section(item, report)
 
             item.qt_log_capture._stop()
             del item.qt_log_capture
         return report
+
+    def _get_log_fail_level(self, item):
+        """
+        Return the log level that makes a test fail: the value given to the
+        ``qt_log_level_fail`` marker if present, otherwise the ini option.
+        """
+        fail_level_marker = get_marker(item, "qt_log_level_fail")
+        if fail_level_marker:
+            log_fail_level = fail_level_marker.args[0]
+        else:
+            log_fail_level = self.config.getini("qt_log_level_fail")
+        assert log_fail_level in QtLoggingPlugin.LOG_FAIL_OPTIONS
+        return log_fail_level
+
+    def _fail_report_on_matching_records(self, item, report, log_fail_level):
+        """
+        Make the test fail if any captured record matches ``log_fail_level``
+        (and is not ignored) or is a ``qt.modeltest`` warning.
+        """
+        for rec in item.qt_log_capture.records:
+            is_modeltest_error = (
+                rec.context is not None
+                and rec.context.category == "qt.modeltest"
+                and rec.matches_level("WARNING")
+            )
+            matches_fail_level = rec.matches_level(log_fail_level) and not rec.ignored
+            if matches_fail_level or is_modeltest_error:
+                report.outcome = "failed"
+                if report.longrepr is None:
+                    report.longrepr = _QtLogLevelErrorRepr(
+                        item, log_fail_level, is_modeltest_error
+                    )
+                break
+
+    def _add_captured_messages_section(self, item, report):
+        """
+        Add the captured Qt messages as a section of the terminal
+        representation of a failed test.
+        """
+        long_repr = getattr(report, "longrepr", None)
+        if not hasattr(long_repr, "addsection"):  # pragma: no cover
+            return
+        log_format = self.config.getoption("qt_log_format")
+        context_format = None
+        if log_format is None:
+            context_format = (
+                "{rec.context.file}:{rec.context.function}:{rec.context.line}:\n"
+            )
+            log_format = "    {rec.type_name}: {rec.message}"
+
+        lines = []
+        for rec in item.qt_log_capture.records:
+            suffix = " (IGNORED)" if rec.ignored else ""
+
+            if context_format is not None and _has_source_context(rec):
+                context_line = context_format.format(rec=rec)
+                lines.append(context_line)
+            else:
+                log_format = log_format.lstrip()
+
+            line = log_format.format(rec=rec) + suffix
+            lines.append(line)
+        if lines:
+            long_repr.addsection("Captured Qt messages", "\n".join(lines))
 
 
 def _has_source_context(rec: Record) -> bool:
