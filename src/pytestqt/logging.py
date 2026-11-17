@@ -24,19 +24,19 @@ class QtLoggingPlugin:
     def pytest_runtest_setup(self, item):
         if get_marker(item, "no_qt_log"):
             return
-        m = get_marker(item, "qt_log_ignore")
-        if m:
-            if not set(m.kwargs).issubset({"extend"}):
+        log_ignore_marker = get_marker(item, "qt_log_ignore")
+        if log_ignore_marker:
+            if not set(log_ignore_marker.kwargs).issubset({"extend"}):
                 raise ValueError(
                     "Invalid keyword arguments in {!r} for qt_log_ignore mark.".format(
-                        m.kwargs
+                        log_ignore_marker.kwargs
                     )
                 )
-            if m.kwargs.get("extend", True):
+            if log_ignore_marker.kwargs.get("extend", True):
                 config_regexes = self.config.getini("qt_log_ignore")
-                ignore_regexes = config_regexes + list(m.args)
+                ignore_regexes = config_regexes + list(log_ignore_marker.args)
             else:
-                ignore_regexes = m.args
+                ignore_regexes = log_ignore_marker.args
         else:
             ignore_regexes = self.config.getini("qt_log_ignore")
         item.qt_log_capture = _QtMessageCapture(ignore_regexes)
@@ -50,9 +50,9 @@ class QtLoggingPlugin:
             return report
 
         if call.when == "call":
-            m = get_marker(item, "qt_log_level_fail")
-            if m:
-                log_fail_level = m.args[0]
+            fail_level_marker = get_marker(item, "qt_log_level_fail")
+            if fail_level_marker:
+                log_fail_level = fail_level_marker.args[0]
             else:
                 log_fail_level = self.config.getini("qt_log_level_fail")
             assert log_fail_level in QtLoggingPlugin.LOG_FAIL_OPTIONS
