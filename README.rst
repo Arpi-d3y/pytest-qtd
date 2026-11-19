@@ -137,10 +137,35 @@ After that install ``pre-commit`` for pre-commit checks::
 
     $ pre-commit install
 
+Building from source
+--------------------
+
+``pytest-qt`` needs Python 3.9+ and at least one Qt binding (PySide6, PyQt6 or PyQt5).
+On any system (Linux, macOS, Windows)::
+
+    $ git clone https://github.com/pytest-dev/pytest-qt.git
+    $ cd pytest-qt
+    $ python -m venv .venv
+    $ source .venv/bin/activate        # Windows: .venv\Scripts\activate
+    $ pip install --editable .[dev]
+    $ pip install PySide6              # or PyQt6 / PyQt5
+
+Check that the package builds and imports::
+
+    $ python -m compileall -q src
+    $ python -c "import pytestqt; print(pytestqt.__file__)"
+
+On a Linux machine without a display (e.g. CI or a server), also install
+``pytest-xvfb`` (``pip install pytest-xvfb``) or set ``QT_QPA_PLATFORM=offscreen``.
+
 Running tests
 -------------
 
-Tests are run using `tox`_::
+With the environment above active, run the whole suite with::
+
+    $ pytest tests
+
+Tests can also be run against several Qt bindings in isolated environments using `tox`_::
 
     $ tox -e py-pyside6,py-pyqt5
 
