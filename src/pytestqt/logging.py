@@ -93,15 +93,7 @@ class QtLoggingPlugin:
                     for rec in item.qt_log_capture.records:
                         suffix = " (IGNORED)" if rec.ignored else ""
 
-                        if (
-                            rec.context is not None
-                            and (
-                                rec.context.file is not None
-                                or rec.context.function is not None
-                                or rec.context.line != 0
-                            )
-                            and context_format is not None
-                        ):
+                        if _has_context_info(rec) and context_format is not None:
                             context_line = context_format.format(rec=rec)
                             lines.append(context_line)
                         else:
@@ -115,6 +107,18 @@ class QtLoggingPlugin:
             item.qt_log_capture._stop()
             del item.qt_log_capture
         return report
+
+
+def _has_context_info(rec):
+    """Return True if the record carries any source location information
+    (file, function or line number) that is worth printing."""
+    context = rec.context
+    if context is None:
+        return False
+    has_file = context.file is not None
+    has_function = context.function is not None
+    has_line = context.line != 0
+    return has_file or has_function or has_line
 
 
 class _QtMessageCapture:
