@@ -140,30 +140,51 @@ After that install ``pre-commit`` for pre-commit checks::
 Building from source
 --------------------
 
-``pytest-qt`` needs Python 3.9+ and at least one Qt binding (PySide6, PyQt6 or PyQt5).
-On any system (Linux, macOS, Windows)::
+``pytest-qt`` needs Python 3.9+, Git and at least one Qt binding (PySide6, PyQt6 or PyQt5).
+The steps below build this fork's refactored branch from a clean checkout.
 
-    $ git clone https://github.com/pytest-dev/pytest-qt.git
-    $ cd pytest-qt
-    $ python -m venv .venv
-    $ source .venv/bin/activate        # Windows: .venv\Scripts\activate
-    $ pip install --editable .[dev]
-    $ pip install PySide6              # or PyQt6 / PyQt5
+macOS / Linux::
 
-Check that the package builds and imports::
-
+    $ git clone https://github.com/Arpi-d3y/pytest-qtd.git
+    $ cd pytest-qtd
+    $ git switch a2-refactoring-final
+    $ python3 -m venv .venv
+    $ source .venv/bin/activate
+    $ python -m pip install --editable ".[dev]"
+    $ python -m pip install PySide6
     $ python -m compileall -q src
-    $ python -c "import pytestqt; print(pytestqt.__file__)"
+    $ QT_QPA_PLATFORM=offscreen python -m pytest tests -q
 
-On a Linux machine without a display (e.g. CI or a server), also install
-``pytest-xvfb`` (``pip install pytest-xvfb``) or set ``QT_QPA_PLATFORM=offscreen``.
+Windows (PowerShell)::
+
+    > git clone https://github.com/Arpi-d3y/pytest-qtd.git
+    > cd pytest-qtd
+    > git switch a2-refactoring-final
+    > py -m venv .venv
+    > .venv\Scripts\Activate.ps1
+    > python -m pip install --editable ".[dev]"
+    > python -m pip install PySide6
+    > python -m compileall -q src
+    > $env:QT_QPA_PLATFORM = "offscreen"
+    > python -m pytest tests -q
+
+Windows (Command Prompt): activate with ``.venv\Scripts\activate.bat`` and set
+the platform with ``set QT_QPA_PLATFORM=offscreen``; the other commands are the same.
+
+Expected result: ``332 passed, 8 skipped, 42 xfailed`` (verified on macOS with PySide6).
+
+``QT_QPA_PLATFORM=offscreen`` runs the GUI tests without opening real windows. It is
+needed on machines without a display (CI, servers) and avoids two tests that are sensitive
+to the desktop environment: ``test_basics.py::test_wait_window[waitActive-True]`` (window
+activation can time out) and ``test_screenshot.py::test_region`` (Retina 2x scaling on
+macOS). On Linux, installing ``pytest-xvfb`` (``pip install pytest-xvfb``) also works.
 
 Running tests
 -------------
 
 With the environment above active, run the whole suite with::
 
-    $ pytest tests
+    $ QT_QPA_PLATFORM=offscreen python -m pytest tests -q
 
 Tests can also be run against several Qt bindings in isolated environments using `tox`_::
 
