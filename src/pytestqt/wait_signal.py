@@ -322,7 +322,7 @@ class MultiSignalBlocker(_AbstractSignalBlocker):
         self._slots = []  # list of slot functions
         self._signal_expected_index = 0  # only used when forcing order
         self._strict_order_violated = False
-        self._actual_signal_and_args_at_violation = None
+        self._signal_at_violation = None
         # maps from the unique Signal to the name of the signal (as string)
         self._signal_names = {}
         self.all_signals_and_args = []  # list of SignalAndArgs instances
@@ -443,7 +443,7 @@ class MultiSignalBlocker(_AbstractSignalBlocker):
                     )
                 else:
                     if self._are_signal_names_available():
-                        self._actual_signal_and_args_at_violation = SignalAndArgs(
+                        self._signal_at_violation = SignalAndArgs(
                             signal_name=self._signal_names[unique_signal], args=args
                         )
 
@@ -519,7 +519,7 @@ class MultiSignalBlocker(_AbstractSignalBlocker):
         missing_signal_strings = []
         for missing_signal_index in self._get_missing_signal_indices():
             missing_signal_strings.append(
-                self._get_signal_string_representation_for_index(missing_signal_index)
+                self._get_signal_repr_for_index(missing_signal_index)
             )
         missing_signals = self._format_as_array(missing_signal_strings)
 
@@ -532,10 +532,10 @@ class MultiSignalBlocker(_AbstractSignalBlocker):
         return "[{}]".format(", ".join(list_of_strings))
 
     def _get_order_violation_message(self):
-        expected_signal_as_str = self._get_signal_string_representation_for_index(
+        expected_signal_as_str = self._get_signal_repr_for_index(
             self._signal_expected_index
         )
-        actual_signal_as_str = str(self._actual_signal_and_args_at_violation)
+        actual_signal_as_str = str(self._signal_at_violation)
         return (
             "Signal order violated! Expected {expected} as {ordinal} signal, "
             "but received {actual} instead. "
@@ -552,7 +552,7 @@ class MultiSignalBlocker(_AbstractSignalBlocker):
             if not self._signals_emitted[index]
         ]
 
-    def _get_signal_string_representation_for_index(self, index):
+    def _get_signal_repr_for_index(self, index):
         """Returns something like <name_of_signal> or <name_of_signal> (callback: <name_of_callback>)"""
         signal = self._get_signal_for_index(index)
         signal_str_repr = self._signal_names[signal]
